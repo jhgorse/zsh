@@ -1,0 +1,9 @@
+alias l="ls -hCF"
+alias ll="ls -alh"
+
+alias erc="nano ~/.zshrc;source ~/.zshrc"
+alias add="nano ~/.aliases;source ~/.aliases"
+
+alias ssh_bfw="ssh firmware@10.200.232.97"
+alias ssh_blocal="ssh root@192.168.207.1"
+
