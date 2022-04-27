@@ -5,6 +5,7 @@ shopt -s extglob
 lexers="+($(pygmentize -L lexers |
            perl -ne 'print join("|", split(/, /,$1)) . "|" if /\(filenames ([^\)]+)\)/' |
            sed 's/|$//'))"
+
 case "$1" in
     $lexers)
         pygmentize -f 256 "$1";;
@@ -17,6 +18,7 @@ case "$1" in
     *afs-robotest)
         pygmentize -f 256 -l py "$1"
         ;;
+
     *)
         #pygmentize -f 256 -l sh "$1"
         grep "#\!/bin/bash" "$1" > /dev/null
@@ -32,4 +34,3 @@ case "$1" in
         ;;
 esac
 exit 0
-

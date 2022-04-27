@@ -2,30 +2,35 @@ if [[ -f "$HOME/.aliases" ]]; then
     source $HOME/.aliases
 fi
 
-# create a zkbd compatible hash;
-# to add other keys to this hash, see: man 5 terminfo
-typeset -g -A key
+unsetopt ALWAYS_LAST_PROMPT
 
-[[ -n "$terminfo[kich1]" ]] && key[Insert]=$terminfo[kich1]
-[[ -n "$terminfo[kdch1]" ]] && key[Delete]=$terminfo[kdch1]
-[[ -n "$terminfo[khome]" ]] && key[Home]=$terminfo[khome]
-[[ -n "$terminfo[kend]" ]] && key[End]=$terminfo[kend]
-[[ -n "$terminfo[kpp]" ]] && key[PageUp]=$terminfo[kpp]
-[[ -n "$terminfo[knp]" ]] && key[PageDown]=$terminfo[knp]
-[[ -n "$terminfo[kcuu1]" ]] && key[Up]=$terminfo[kcuu1]
-[[ -n "$terminfo[kcub1]" ]] && key[Left]=$terminfo[kcub1]
-[[ -n "$terminfo[kcud1]" ]] && key[Down]=$terminfo[kcud1]
-[[ -n "$terminfo[kcuf1]" ]] && key[Right]=$terminfo[kcuf1]
+# export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
 
-# setup key accordingly
-[[ -n "${key[Home]}"    ]]  && bindkey  "${key[Home]}"    beginning-of-line
-[[ -n "${key[End]}"     ]]  && bindkey  "${key[End]}"     end-of-line
-[[ -n "${key[Insert]}"  ]]  && bindkey  "${key[Insert]}"  overwrite-mode
-[[ -n "${key[Delete]}"  ]]  && bindkey  "${key[Delete]}"  delete-char
-[[ -n "${key[Left]}"    ]]  && bindkey  "${key[Left]}"    backward-char
-[[ -n "${key[Right]}"   ]]  && bindkey  "${key[Right]}"   forward-char
-[[ -n "${key[Up]}"      ]]  && bindkey  "${key[Up]}"      history-beginning-search-backward
-[[ -n "${key[Down]}"    ]]  && bindkey  "${key[Down]}"    history-beginning-search-forward
+setopt HIST_EXPIRE_DUPS_FIRST  # if history needs to be trimmed, evict dups first
+setopt HIST_IGNORE_SPACE       # don't add commands starting with space to history
+setopt HIST_REDUCE_BLANKS      # remove junk whitespace from commands before adding to history
+setopt HIST_VERIFY             # if a cmd triggers history expansion, show it instead of running
+setopt SHARE_HISTORY           # write and import history on every command
+setopt EXTENDED_HISTORY        # write timestamps to history
+
+export HISTFILESIZE=1000000000
+export HISTFILE="$HOME/.zsh_history"
+export HISTSIZE=1000000000
+export SAVEHIST=1000000000
+
+export LESS='-R'
+export LESSOPEN='|~/.lessfilter %s'
+
+autoload -Uz compinit
+compinit
+
+autoload -Uz up-line-or-beginning-search
+autoload -Uz down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+
+##bindkey "\e[A" up-line-or-beginning-search
+##bindkey "\e[B" down-line-or-beginning-search
 
 #bindkey "^[b" backward-word
 #bindkey "^[f" forward-word
@@ -34,13 +39,59 @@ typeset -g -A key
 #bindkey "^[[A" history-beginning-search-backward
 #bindkey "^[[B" history-beginning-search-forward
 
+#bindkey "\e[A" history-beginning-search-backward
+#bindkey "\e[B" history-beginning-search-forward
 
-unsetopt ALWAYS_LAST_PROMPT
+bindkey '^[[A'    up-line-or-beginning-search-local   # up         previous command in local history
+bindkey '^[[B'    down-line-or-beginning-search-local # down       next command in local history
+bindkey '^[[1;5A' up-line-or-beginning-search         # ctrl+up    prev command in global history
+bindkey '^[[1;5B' down-line-or-beginning-search       # ctrl+down  next command in global history
 
-# export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
+typeset -g __local_searching __local_savecursor
 
-export HISTFILE="$HOME/.zsh_history"
-export HISTSIZE=1000000000
-export SAVEHIST=1000000000
-setopt EXTENDED_HISTORY
+# The same as up-line-or-beginning-search but restricted to local history.
+up-line-or-beginning-search-local() {
+  emulate -L zsh
+  local last=$LASTWIDGET
+  zle .set-local-history 1
+  if [[ $LBUFFER == *$'\n'* ]]; then
+    zle .up-line-or-history
+    __local_searching=''
+  elif [[ -n $PREBUFFER ]] && zstyle -t ':zle:up-line-or-beginning-search' edit-buffer; then
+    zle .push-line-or-edit
+  else
+    [[ $last = $__local_searching ]] && CURSOR=$__local_savecursor
+    __local_savecursor=$CURSOR
+    __local_searching=$WIDGET
+    zle .history-beginning-search-backward
+    zstyle -T ':zle:up-line-or-beginning-search' leave-cursor && zle .end-of-line
+  fi
+  zle set-local-history 0
+}
+zle -N up-line-or-beginning-search-local
 
+# The same as down-line-or-beginning-search but restricted to local history.
+down-line-or-beginning-search-local() {
+  emulate -L zsh
+  local last=$LASTWIDGET
+  zle .set-local-history 1
+  function impl() {
+    if [[ ${+NUMERIC} -eq 0 && ( $last = $__local_searching || $RBUFFER != *$'\n'* ) ]]; then
+      [[ $last = $__local_searching ]] && CURSOR=$__local_savecursor
+      __local_searching=$WIDGET
+      __local_savecursor=$CURSOR
+      if zle .history-beginning-search-forward; then
+        if [[ $RBUFFER != *$'\n'* ]]; then
+          zstyle -T ':zle:down-line-or-beginning-search' leave-cursor && zle .end-of-line
+        fi
+        return
+      fi
+      [[ $RBUFFER = *$'\n'* ]] || return
+    fi
+    __local_searching=''
+    zle .down-line-or-history
+  }
+  impl
+  zle .set-local-history 0
+}
+zle -N down-line-or-beginning-search-local
