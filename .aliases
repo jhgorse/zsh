@@ -1,9 +1,11 @@
+alias ls="$(brew --prefix)/opt/coreutils/bin/gls --color=auto"
 alias l="ls -hCF"
 alias ll="ls -alh"
 
 alias erc="nano ~/.zshrc;source ~/.zshrc"
 alias add="nano ~/.aliases;source ~/.aliases"
 
+alias fix_ssh="eval `ssh-agent -s`"
 alias ssh_bfw="ssh firmware@10.200.232.97"
 alias ssh_blocal="ssh root@192.168.207.1"
 
