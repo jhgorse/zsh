@@ -5,7 +5,7 @@ alias ll="ls -alh"
 alias erc="nano ~/.zshrc;source ~/.zshrc"
 alias add="nano ~/.aliases;source ~/.aliases"
 
-alias fix_ssh="eval `ssh-agent -s`"
+alias fix_ssh="eval `ssh-agent -s`;ssh-add ~/.ssh/id_rsa{,?}"
 alias ssh_bfw="ssh firmware@10.200.232.97"
 alias ssh_blocal="ssh root@192.168.207.1"
 
