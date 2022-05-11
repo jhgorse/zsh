@@ -9,3 +9,8 @@ alias fix_ssh="eval `ssh-agent -s`;ssh-add ~/.ssh/id_rsa{,?}"
 alias ssh_bfw="ssh firmware@10.200.232.97"
 alias ssh_blocal="ssh root@192.168.207.1"
 
+function pritunl_connect () {
+  PRITUNL_ID=$(/Applications/Pritunl.app/Contents/Resources/pritunl-client list | grep -v "+" | awk 'FNR == 2 {print $2}')
+  /Applications/Pritunl.app/Contents/Resources/pritunl-client start ${PRITUNL_ID} --password $(${HOME}/Work/go/bin/2fa pritunl)
+}
+
